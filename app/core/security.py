@@ -28,22 +28,23 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 
-# ── JWT 설정 ──────────────────────────────
-SECRET_KEY = "my-super-secret-key-change-this-later"  # 서명용 비밀키 (도장)
-ALGORITHM = "HS256"                                    # 서명 알고리즘
-ACCESS_TOKEN_EXPIRE_MINUTES = 30                       # 토큰 유효 시간
-
 
 def create_access_token(data: dict) -> str:
     """유저 정보를 받아 JWT 토큰을 만들어 반환"""
     to_encode = data.copy()
 
-    # 만료 시간 추가 (현재 시각 + 30분)
-    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    # 만료 시간 추가
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES  # ← settings. 붙이기
+    )
     to_encode.update({"exp": expire})
 
     # 비밀키로 서명해서 토큰 생성
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(
+        to_encode,
+        settings.SECRET_KEY,              # ← settings. 붙이기
+        algorithm=settings.ALGORITHM      # ← settings. 붙이기
+    )
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),

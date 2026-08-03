@@ -7,8 +7,13 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./fsm.db"
     debug: bool = True
 
+    # JWT 설정 추가
+    SECRET_KEY: str = "임시-기본값-실제로는-env에서-읽음"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
     class Config:
-        env_file = ".env"  # .env 파일이 있으면 거기서 값을 읽어옴
+        env_file = ".env"
 
 
 settings = Settings()

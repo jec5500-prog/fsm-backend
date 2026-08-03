@@ -4,6 +4,8 @@ from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
 
 from app.core.database import Base
 
+from sqlalchemy import ForeignKey  # import 추가
+from sqlalchemy.orm import relationship 
 
 class Store(Base):
     """가맹점 정보 테이블"""
@@ -23,3 +25,5 @@ class Store(Base):
     created_at = Column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    owner = relationship("User", back_populates="stores")

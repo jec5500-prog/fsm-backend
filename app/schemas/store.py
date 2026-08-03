@@ -26,6 +26,7 @@ class StoreResponse(BaseModel):
     phone: str | None
     website: str | None
     has_parking: bool
+    owner_id: int 
 
     class Config:
         from_attributes = True

@@ -19,4 +19,13 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True   # SQLAlchemy 모델 → 스키마 자동 변환 허용
 
-        
+class UserLogin(BaseModel):
+    """로그인 시 클라이언트가 보내는 데이터"""
+    email: EmailStr
+    password: str
+
+
+class Token(BaseModel):
+    """로그인 성공 시 서버가 돌려주는 토큰"""
+    access_token: str      # JWT 토큰 문자열
+    token_type: str        # "bearer" (토큰 사용 방식 표준 명칭)        

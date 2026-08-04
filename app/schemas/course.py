@@ -41,3 +41,39 @@ class CourseRecommendResponse(BaseModel):
     estimated_total_minutes: int
 
     message: str
+
+class CourseSaveRequest(CourseRecommendRequest):
+    """추천 조건을 이용해 코스를 저장하는 요청"""
+
+    title: str | None = Field(default=None, max_length=100)
+
+
+class CourseSavedResponse(BaseModel):
+    """저장 완료된 코스"""
+
+    id: int
+    title: str
+    share_token: str
+    share_path: str
+
+    area: str
+    stops: list[CourseStopResponse]
+
+    total_distance_meters: int
+    total_walk_minutes: int
+    estimated_total_minutes: int
+    message: str
+
+
+class SharedCourseResponse(BaseModel):
+    """공유 링크로 조회하는 공개 코스"""
+
+    id: int
+    title: str
+    area: str
+    stops: list[CourseStopResponse]
+
+    total_distance_meters: int
+    total_walk_minutes: int
+    estimated_total_minutes: int
+    message: str

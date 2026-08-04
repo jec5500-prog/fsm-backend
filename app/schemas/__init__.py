@@ -9,5 +9,8 @@ from .store import (
 from .course import (
     CourseRecommendRequest,
     CourseRecommendResponse,
+    CourseSaveRequest,
+    CourseSavedResponse,
     CourseStopResponse,
+    SharedCourseResponse,
 )

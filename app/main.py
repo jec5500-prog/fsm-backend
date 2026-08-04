@@ -5,6 +5,8 @@ from app.core.database import Base, engine
 from app.routers.store import router as store_router
 from app.routers.user import router as user_router
 
+from app.routers.course import router as course_router
+
 # 모델을 import 해야 Base가 테이블 존재를 인식함 (중요!)
 import app.models
 
@@ -19,6 +21,7 @@ app = FastAPI(
 
 app.include_router(store_router)
 app.include_router(user_router)
+app.include_router(course_router)
 
 @app.get("/")
 def health_check():

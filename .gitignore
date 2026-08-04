@@ -13,5 +13,3 @@ __pycache__/
 
 # VS Code 설정
 .vscode/
-
-KAKAO_REST_API_KEY=efe25ee3807b4940d60f5841aee006aa

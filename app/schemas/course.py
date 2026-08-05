@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-
+from typing import Optional
 
 class CourseRecommendRequest(BaseModel):
     """쇼핑 코스 추천 요청"""
@@ -18,7 +18,7 @@ class CourseStopResponse(BaseModel):
     """추천 코스의 한 매장"""
 
     order: int
-    store_id: int
+    store_id: Optional[int] = None
     name: str
     store_type: str
     styles: str | None
@@ -46,6 +46,12 @@ class CourseSaveRequest(CourseRecommendRequest):
     """추천 조건을 이용해 코스를 저장하는 요청"""
 
     title: str | None = Field(default=None, max_length=100)
+
+class CourseRequest(BaseModel):
+    area: Optional[str] = Field(None, description="지역 이름 (예: 성수, 홍대, 강남)")
+    store_count: int = Field(3, description="방문할 매장 수")
+    available_minutes: int = Field(240, description="이용 가능한 총 시간(분)")
+    prompt: Optional[str] = Field(None, description="사용자의 자연어 요구사항 (예: 힙한 빈티지샵 위주로 돌고 싶어)")
 
 
 class CourseSavedResponse(BaseModel):
@@ -77,3 +83,15 @@ class SharedCourseResponse(BaseModel):
     total_walk_minutes: int
     estimated_total_minutes: int
     message: str
+
+class CourseListResponse(BaseModel):
+    id: int
+    title: str
+    area: str
+    total_distance_meters: int
+    total_walk_minutes: int
+    estimated_total_minutes: int
+    share_token: Optional[str] = None
+
+class Config:
+        from_attributes = True  # DB 객체를 Pydantic 모델로 자동 변환해주는 마법의 설정!

@@ -152,12 +152,33 @@
       <section>
         <h2>나만의 쇼핑 코스</h2>
 
-        <label for="area">지역</label>
-        <select id="area">
-          <option value="성수">성수</option>
-          <option value="홍대">홍대</option>
-          <option value="강남">강남</option>
-        </select>
+<!-- 2. 새로 추가할 자연어 입력창 (여기에 붙여넣기!) -->
+<!-- 2. 자연어 및 태그 입력창 -->
+        <div class="mb-4">
+          <label for="user-prompt" class="block text-sm font-medium text-gray-300 mb-1">어떤 코스를 원하시나요? ✨</label>
+          <textarea
+            id="user-prompt"
+            class="w-full resize-none bg-gray-800 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-500 focus:outline-none focus:border-green-400"
+            placeholder="자유롭게 적거나 키워드를 입력해 주세요.&#13;&#10;예: 홍대 빈티지샵 투어, #성수 #팝업스토어 #카페"
+            rows="5"
+          ></textarea>
+          
+          <!-- 입력창 바로 아래 예시 텍스트 (Tailwind 적용) -->
+          <div class="mt-2 text-sm text-gray-400 leading-relaxed">
+            💡 <strong>이렇게 입력해 보세요!</strong><br>
+            💬 "압구정에서 조용한 카페랑 편집샵 묶어서 추천해 줘"<br>
+            🏷️ #홍대 #스트릿패션 #Y2K #힙한곳<br>
+            🌧️ "비 오는 날 실내에서 놀기 좋은 코스"
+          </div>
+        </div>
+
+
+
+<!-- 3. 기존 방문 매장 수 / 이용 시간 영역 및 추천 버튼 -->
+<div class="mb-4">
+    <label class="block text-sm font-medium text-gray-300 mb-1">방문 매장 수</label>
+    <!-- ... -->
+</div>
 
         <label>관심 스타일</label>
         <div class="styles">
@@ -167,13 +188,8 @@
           <label><input type="checkbox" value="미니멀" />미니멀</label>
         </div>
 
-        <label for="max-stores">방문 매장 수</label>
-        <select id="max-stores">
-          <option value="2">2곳</option>
-          <option value="3" selected>3곳</option>
-          <option value="4">4곳</option>
-          <option value="5">5곳</option>
-        </select>
+       <label for="max-stores">방문 매장 수 (곳)</label>
+        <input id="max-stores" type="number" value="3" min="1" max="10" placeholder="예: 3" />
 
         <label for="available-minutes">이용 가능 시간(분)</label>
         <input id="available-minutes" type="number" value="240" min="30" max="720" />
@@ -254,7 +270,10 @@
           </article>
         `).join("");
 
-        drawMap(course.stops);
+        requestAnimationFrame(() => {
+  map.relayout();
+  drawMap(course.stops);
+});
       }
 
       function drawMap(stops) {
@@ -310,12 +329,13 @@
         const payload = {
           start_latitude: startLocation.latitude,
           start_longitude: startLocation.longitude,
-          area: document.getElementById("area").value,
+          // area: ... (이 줄은 삭제!)
           styles: selectedStyles(),
           max_stores: Number(document.getElementById("max-stores").value),
           available_minutes: Number(
             document.getElementById("available-minutes").value,
           ),
+          prompt: document.getElementById("user-prompt").value, 
         };
 
         try {
@@ -324,6 +344,7 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
+          // ... (이하 동일)
 
           const data = await response.json();
 

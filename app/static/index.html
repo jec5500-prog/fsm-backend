@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FSM | AI 쇼핑 코스 추천</title>
+
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Arial, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: #101416;
+        color: #f2f5f3;
+      }
+
+      header {
+        padding: 24px 8%;
+        border-bottom: 1px solid #2b3432;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 24px;
+        padding: 24px 8%;
+      }
+
+      section {
+        background: #18201e;
+        border: 1px solid #2b3432;
+        border-radius: 16px;
+        padding: 20px;
+      }
+
+      h1, h2, p {
+        margin-top: 0;
+      }
+
+      .muted {
+        color: #aab7b1;
+        line-height: 1.6;
+      }
+
+      label {
+        display: block;
+        margin: 16px 0 8px;
+        font-weight: bold;
+      }
+
+      input, select, button {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        font: inherit;
+      }
+
+      input, select {
+        border: 1px solid #45524d;
+        background: #111715;
+        color: #f2f5f3;
+      }
+
+      .styles {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .styles label {
+        margin: 0;
+        font-weight: normal;
+      }
+
+      .styles input {
+        width: auto;
+        margin-right: 6px;
+      }
+
+      button {
+        margin-top: 20px;
+        border: 0;
+        background: #55dc9b;
+        color: #062617;
+        cursor: pointer;
+        font-weight: bold;
+      }
+
+      button:hover {
+        background: #80edb6;
+      }
+
+      #map {
+        height: 440px;
+        margin-top: 16px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #293530;
+      }
+
+      #result {
+        display: none;
+      }
+
+      .summary {
+        padding: 14px;
+        border-radius: 12px;
+        background: #111715;
+        color: #bff4d6;
+      }
+
+      .stop {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+        padding: 14px;
+        border-radius: 12px;
+        background: #111715;
+      }
+
+      .number {
+        display: grid;
+        place-items: center;
+        flex: 0 0 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #55dc9b;
+        color: #062617;
+        font-weight: bold;
+      }
+
+      @media (max-width: 850px) {
+        main {
+          grid-template-columns: 1fr;
+          padding: 16px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>FSM 🗺️</h1>
+      <p class="muted">취향과 위치에 맞춰 서울 쇼핑 동선을 추천합니다.</p>
+    </header>
+
+    <main>
+      <section>
+        <h2>나만의 쇼핑 코스</h2>
+
+        <label for="area">지역</label>
+        <select id="area">
+          <option value="성수">성수</option>
+          <option value="홍대">홍대</option>
+          <option value="강남">강남</option>
+        </select>
+
+        <label>관심 스타일</label>
+        <div class="styles">
+          <label><input type="checkbox" value="빈티지" checked />빈티지</label>
+          <label><input type="checkbox" value="편집숍" checked />편집숍</label>
+          <label><input type="checkbox" value="스트릿" />스트릿</label>
+          <label><input type="checkbox" value="미니멀" />미니멀</label>
+        </div>
+
+        <label for="max-stores">방문 매장 수</label>
+        <select id="max-stores">
+          <option value="2">2곳</option>
+          <option value="3" selected>3곳</option>
+          <option value="4">4곳</option>
+          <option value="5">5곳</option>
+        </select>
+
+        <label for="available-minutes">이용 가능 시간(분)</label>
+        <input id="available-minutes" type="number" value="240" min="30" max="720" />
+
+        <button id="recommend-button">내 쇼핑 코스 추천받기</button>
+        <p id="location-status" class="muted">현재 위치를 확인하는 중입니다.</p>
+      </section>
+
+      <section>
+        <h2>추천 결과</h2>
+        <p id="empty-message" class="muted">
+          조건을 선택하고 추천 버튼을 눌러주세요.
+        </p>
+
+        <div id="result">
+          <div id="summary" class="summary"></div>
+          <div id="stops"></div>
+          <div id="map"></div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const DEFAULT_LOCATION = {
+        latitude: 37.5445,
+        longitude: 127.0557,
+      };
+
+      let startLocation = DEFAULT_LOCATION;
+      let map;
+
+      function selectedStyles() {
+        return [...document.querySelectorAll(".styles input:checked")]
+          .map((element) => element.value);
+      }
+
+      function setLocation() {
+        const status = document.getElementById("location-status");
+
+        if (!navigator.geolocation) {
+          status.textContent = "위치 기능을 지원하지 않아 성수역 기준으로 추천합니다.";
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            startLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            };
+            status.textContent = "현재 위치를 기준으로 추천합니다.";
+          },
+          () => {
+            status.textContent = "위치 권한이 없어 성수역 기준으로 추천합니다.";
+          },
+        );
+      }
+
+      function renderResult(course) {
+        document.getElementById("empty-message").style.display = "none";
+        document.getElementById("result").style.display = "block";
+
+        document.getElementById("summary").textContent =
+          `${course.message} · 총 ${course.total_distance_meters.toLocaleString()}m · ` +
+          `도보 약 ${course.total_walk_minutes}분 · 총 ${course.estimated_total_minutes}분`;
+
+        document.getElementById("stops").innerHTML = course.stops.map((stop) => `
+          <article class="stop">
+            <div class="number">${stop.order}</div>
+            <div>
+              <strong>${stop.name}</strong>
+              <div class="muted">${stop.address || "주소 정보 없음"}</div>
+              <div class="muted">
+                이전 지점에서 ${stop.distance_from_previous_meters}m ·
+                도보 약 ${stop.estimated_walk_minutes}분
+              </div>
+            </div>
+          </article>
+        `).join("");
+
+        drawMap(course.stops);
+      }
+
+      function drawMap(stops) {
+        if (!window.kakao || !map) {
+          return;
+        }
+
+        const bounds = new kakao.maps.LatLngBounds();
+        const path = [];
+
+        const start = new kakao.maps.LatLng(
+          startLocation.latitude,
+          startLocation.longitude,
+        );
+
+        path.push(start);
+        bounds.extend(start);
+
+        new kakao.maps.Marker({
+          map,
+          position: start,
+          title: "출발 위치",
+        });
+
+        stops.forEach((stop) => {
+          const position = new kakao.maps.LatLng(stop.latitude, stop.longitude);
+          path.push(position);
+          bounds.extend(position);
+
+          new kakao.maps.Marker({
+            map,
+            position,
+            title: `${stop.order}. ${stop.name}`,
+          });
+        });
+
+        new kakao.maps.Polyline({
+          map,
+          path,
+          strokeWeight: 4,
+          strokeColor: "#55dc9b",
+          strokeOpacity: 0.8,
+        });
+
+        map.setBounds(bounds);
+      }
+
+      async function requestRecommendation() {
+        const button = document.getElementById("recommend-button");
+        button.disabled = true;
+        button.textContent = "코스를 계산하는 중...";
+
+        const payload = {
+          start_latitude: startLocation.latitude,
+          start_longitude: startLocation.longitude,
+          area: document.getElementById("area").value,
+          styles: selectedStyles(),
+          max_stores: Number(document.getElementById("max-stores").value),
+          available_minutes: Number(
+            document.getElementById("available-minutes").value,
+          ),
+        };
+
+        try {
+          const response = await fetch("/courses/recommend", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.detail || "추천 코스를 만들지 못했습니다.");
+          }
+
+          renderResult(data);
+        } catch (error) {
+          alert(error.message);
+        } finally {
+          button.disabled = false;
+          button.textContent = "내 쇼핑 코스 추천받기";
+        }
+      }
+
+      async function loadMap() {
+        const response = await fetch("/api/client-config");
+        const config = await response.json();
+
+        const script = document.createElement("script");
+        script.src =
+          `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${config.kakao_javascript_key}&autoload=false`;
+
+        script.onload = () => {
+          kakao.maps.load(() => {
+            map = new kakao.maps.Map(document.getElementById("map"), {
+              center: new kakao.maps.LatLng(
+                DEFAULT_LOCATION.latitude,
+                DEFAULT_LOCATION.longitude,
+              ),
+              level: 5,
+            });
+          });
+        };
+
+        document.head.appendChild(script);
+      }
+
+      document
+        .getElementById("recommend-button")
+        .addEventListener("click", requestRecommendation);
+
+      setLocation();
+      loadMap();
+    </script>
+  </body>
+</html>

@@ -19,6 +19,10 @@ class Settings(BaseSettings):
 
     # 카카오 로컬 API
     KAKAO_REST_API_KEY: str
+    KAKAO_JAVASCRIPT_KEY: str
+
+    # 추가된 제미나이 API
+    GEMINI_API_KEY: str
 
 
 settings = Settings()

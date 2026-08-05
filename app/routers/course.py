@@ -14,6 +14,7 @@ from app.schemas.course import (
     SharedCourseResponse,
 )
 from app.services.route_planner import create_shopping_route
+from app.services.kakao_local import kakao_local_service
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
@@ -22,18 +23,47 @@ def get_candidate_stores(
     request: CourseRecommendRequest,
     db: Session,
 ) -> list[Store]:
-    """추천 조건에 맞는 매장 후보를 조회한다."""
+    """카카오 API를 활용하여 지역 내 매장, 카페, 식당 후보를 조회한다."""
+    
+    area = request.area
+    candidate_stores = []
+    
+    # 1. 수집할 키워드 세팅 (쇼핑뿐만 아니라 카페, 식당까지 포함)
+    keywords = [f"{area} 옷가게", f"{area} 카페", f"{area} 맛집"]
+    
+    # DB에 당장 저장하지 않고 제미나이에게 전달하기 위한 메모리용 임시 ID
+    temp_id = 1 
+    
+    # 2. 키워드별로 카카오 API 호출하여 데이터 수집
+    for keyword in keywords:
+        try:
+            # 키워드당 10개씩 후보를 가져옵니다. (필요시 개수 조절 가능)
+            places = kakao_local_service.search_places(query=keyword, max_results=10)
+            
+            for place in places:
+                # 분류 설정
+                store_type = "카페" if "카페" in keyword else "식당" if "맛집" in keyword else "옷가게"
+                
+                # 3. 카카오 API 응답 데이터를 Store 모델 형태로 임시 객체화
+                store = Store(
+                    id=temp_id,
+                    name=place.get("place_name", "이름 없음"),
+                    store_type=store_type,
+                    address=place.get("road_address_name") or place.get("address_name", ""),
+                    latitude=float(place.get("y", 0.0)),
+                    longitude=float(place.get("x", 0.0)),
+                    # 제미나이가 참고할 수 있도록, 옷가게인 경우에만 사용자가 요청한 스타일 전달
+                    styles=", ".join(request.styles) if store_type == "옷가게" and request.styles else None,
+                    area=area
+                )
+                candidate_stores.append(store)
+                temp_id += 1
+                
+        except Exception as e:
+            print(f"[{keyword}] 카카오 API 검색 중 오류 발생: {e}")
+            continue
 
-    query = db.query(Store).filter(Store.area.contains(request.area))
-
-    if request.styles:
-        style_filters = [
-            Store.styles.ilike(f"%{style}%")
-            for style in request.styles
-        ]
-        query = query.filter(or_(*style_filters))
-
-    return query.limit(100).all()
+    return candidate_stores
 
 
 def build_recommendation(
